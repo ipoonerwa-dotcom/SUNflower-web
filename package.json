@@ -1,0 +1,12 @@
+{
+  "name": "sunflower-team",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test indexer/accounting.test.js indexer/replay.test.js indexer/alchemy.test.js indexer/tree.test.js",
+    "report": "node indexer/index.js"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  }
+}

@@ -1,0 +1,13 @@
+[profile.default]
+src = "contracts"
+test = "test"
+out = "out"
+libs = ["lib"]
+solc = "0.8.26"
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+
+# Named so the URL, which carries an API key, stays in .env and off the command line.
+[rpc_endpoints]
+bsc = "${RPC_URL}"
