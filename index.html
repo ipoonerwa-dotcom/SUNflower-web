@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>向日葵 · 团队业绩</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <span class="mark">✺</span>
+    <div class="brand-text">
+      <strong>向日葵</strong>
+      <span class="sub">SUNFLOWER · 团队业绩</span>
+    </div>
+  </div>
+  <button id="connect" class="btn ghost">连接钱包</button>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="me">我的</button>
+  <button role="tab" data-tab="trade">交易</button>
+  <button role="tab" data-tab="team">团队</button>
+  <button role="tab" data-tab="board">排行</button>
+</nav>
+
+<div id="note" class="note" hidden></div>
+
+<main>
+
+  <!-- ============================================================ 我的 -->
+  <div id="mePanel" data-panel="me">
+
+    <section class="card hero">
+      <div class="hero-main">
+        <div class="label">我的业绩 <span class="gold">金本位</span></div>
+        <div id="personalUsd" class="figure">$0.00</div>
+        <div class="hint">按买入当时的美元价锁定，币价涨跌都不影响</div>
+        <div id="myStudioLine" class="studio-line" hidden>所属社区 <span id="myStudioName" class="tag"></span></div>
+      </div>
+      <div class="hero-side">
+        <div class="stat"><span>团队业绩</span><b id="teamUsd">$0.00</b></div>
+        <div class="stat"><span>持有</span><b id="heldTokens">0</b></div>
+        <div class="stat"><span>抵押中</span><b id="stakedTokens">0</b></div>
+        <div class="stat"><span>钱包余额</span><b id="myBalance">0</b></div>
+      </div>
+    </section>
+
+    <section class="card" id="bindPanel">
+      <h2>绑定推荐人</h2>
+      <p class="muted">绑定写在链上，<b>本人只能绑一次，绑后不能自己改</b>；若绑错了，可联系官方更正。先绑定再买入，业绩才会计入上级团队。</p>
+      <div id="bindForm">
+        <div id="refFromLink" class="from-link" hidden>推荐人已由邀请链接带入</div>
+        <div id="refDefault" class="from-link soft" hidden>你没有邀请链接，默认加入官方。若有人推荐你，把他的地址填到下面。</div>
+        <label class="field">
+          <span>推荐人地址</span>
+          <input id="referrerInput" placeholder="0x…" autocomplete="off" spellcheck="false">
+        </label>
+        <button id="bindButton" class="btn primary wide">确认绑定</button>
+      </div>
+    </section>
+
+    <section class="card" id="boundPanel" hidden>
+      <h2>我的关系</h2>
+      <div class="grid3">
+        <div class="stat"><span>我的推荐人</span><b><a id="myUpline" target="_blank" rel="noopener">—</a></b></div>
+        <div class="stat"><span>我的层级</span><b id="myLevel">—</b></div>
+        <div class="stat"><span>直推人数</span><b id="myDirects">—</b></div>
+      </div>
+      <button id="copyLink" class="btn ghost wide">复制我的邀请链接</button>
+    </section>
+
+    <section class="card" id="studioPanel">
+      <h2>工作室</h2>
+      <div id="studioPending" class="pending">工作室功能即将开放。</div>
+      <div id="studioBody" hidden>
+        <div id="studioNeedsBind" class="from-link soft" hidden>请先在上面绑定推荐人，再申请成为工作室。</div>
+
+        <div id="studioApply">
+          <p class="muted">提交后，<b>这个钱包地址就成为社区地址</b>，你网体下所有地址都会显示这个社区名称。网体里如果还有别的工作室，他下面的人显示离自己最近的那个。</p>
+          <label class="field">
+            <span>社区名称</span>
+            <input id="studioName" maxlength="48" placeholder="最多 16 个汉字" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>社区钱包地址（即当前连接的钱包）</span>
+            <input id="studioAddress" readonly>
+          </label>
+          <p class="muted small">要让哪个地址成为社区，就用那个钱包连接后提交。不能替别人的地址申请，否则谁都能给别人的网体随便起名。</p>
+          <button id="studioSubmit" class="btn primary wide">申请成为工作室</button>
+        </div>
+
+        <div id="studioManage" hidden>
+          <div class="studio-current">你的工作室：<span id="studioCurrent" class="tag big"></span></div>
+          <label class="field">
+            <span>修改名称</span>
+            <input id="studioRename" maxlength="48" placeholder="新的社区名称" autocomplete="off">
+          </label>
+          <div class="row2">
+            <button id="studioRenameButton" class="btn ghost">改名</button>
+            <button id="studioResign" class="btn ghost danger">取消工作室</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card rules">
+      <h2>业绩怎么算</h2>
+      <p class="lead">业绩 = <b>你买入、并且还拿着的那部分代币，按买入当时的美元价计</b>。</p>
+      <table class="rules-table">
+        <tbody>
+          <tr><td>买入 / 铸造</td><td class="plus">计入</td><td>按成交当时的 BNB/美元价折算</td></tr>
+          <tr><td>抵押借贷后买入</td><td class="plus">计入</td><td>借来的 BNB 买入，和自己掏钱一样算</td></tr>
+          <tr><td>抵押给金库</td><td class="keep">不变</td><td>币还是你的，只是押在金库里</td></tr>
+          <tr><td>赎回取回</td><td class="keep">不变</td><td>抵押的反向操作</td></tr>
+          <tr><td>卖出</td><td class="minus">扣减</td><td>扣掉这些币<b>当初的买入成本</b>，先扣最早买的</td></tr>
+          <tr><td>转给别的地址</td><td class="minus">扣减</td><td>不扣的话，转到小号卖掉就能无限刷业绩</td></tr>
+          <tr><td>违约被销毁</td><td class="minus">扣减</td><td>抵押品被烧掉，仓位是真的没了</td></tr>
+          <tr><td>别人转进来 / 空投</td><td class="keep">不变</td><td>没花钱买的不算业绩，卖掉也不扣</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small">
+        卖光业绩归零，不会变成负数。本页只做统计与展示，奖励由项目方核算后发放。
+        合约：<a id="tokenLink" target="_blank" rel="noopener">代币</a> ·
+        <a id="vaultLink" target="_blank" rel="noopener">借贷金库</a>
+      </p>
+    </section>
+  </div>
+
+  <!-- ============================================================ 交易 -->
+  <div id="tradePanel" data-panel="trade" hidden>
+    <section class="card swap">
+      <div class="seg two">
+        <button data-side="buy" class="on">买入</button>
+        <button data-side="sell">卖出</button>
+      </div>
+
+      <div class="swap-asset">
+        <span id="swapAssetLabel" class="muted small">用什么买</span>
+        <div class="seg small">
+          <button data-asset="BNB" class="on">BNB</button>
+          <button data-asset="USDT">USDT</button>
+        </div>
+      </div>
+
+      <div class="swap-box">
+        <div class="swap-head"><span>支付</span><span class="muted small">余额 <b id="payBalance">—</b> <button id="maxButton" class="link">最大</button></span></div>
+        <div class="swap-line">
+          <input id="swapAmount" inputmode="decimal" placeholder="0.0" autocomplete="off">
+          <span id="payUnit" class="unit">BNB</span>
+        </div>
+      </div>
+
+      <div class="swap-arrow">↓</div>
+
+      <div class="swap-box">
+        <div class="swap-head"><span>预计得到</span><span class="muted small">余额 <b id="getBalance">—</b></span></div>
+        <div class="swap-line">
+          <b id="swapOut" class="out">0</b>
+          <span id="getUnit" class="unit">向日葵</span>
+        </div>
+      </div>
+
+      <dl class="swap-details">
+        <div><dt>最少到账</dt><dd id="swapMin">—</dd></div>
+        <div><dt>本次税率</dt><dd id="swapTax">3%</dd></div>
+        <div>
+          <dt>滑点</dt>
+          <dd class="seg tiny">
+            <button data-slip="50">0.5%</button>
+            <button data-slip="100" class="on">1%</button>
+            <button data-slip="200">2%</button>
+            <button data-slip="500">5%</button>
+          </dd>
+        </div>
+      </dl>
+
+      <div id="swapWarn" class="from-link" hidden></div>
+      <button id="swapButton" class="btn primary wide">买入</button>
+      <p class="muted small">经 PancakeSwap 成交，报价已扣除 3% 买卖税。用 USDT 时自动经 BNB 中转。在这里买入和在别处买入一样计入业绩。</p>
+    </section>
+  </div>
+
+  <!-- ============================================================ 团队 -->
+  <div id="teamPanel" data-panel="team" hidden>
+    <section class="card">
+      <div class="card-head">
+        <h2>团队</h2>
+        <span id="teamAge" class="muted small"></span>
+      </div>
+      <div class="lookup">
+        <input id="lookupInput" placeholder="输入地址查看他的团队（默认是我）" autocomplete="off" spellcheck="false">
+        <button id="lookupButton" class="btn ghost">查询</button>
+      </div>
+      <div id="teamEmpty" class="empty" hidden></div>
+      <div class="grid4">
+        <div class="stat"><span>直推人数</span><b id="statDirects">—</b></div>
+        <div class="stat"><span>团队人数</span><b id="statTeam">—</b></div>
+        <div class="stat"><span>团队业绩</span><b id="statTeamUsd">—</b></div>
+        <div class="stat"><span>直推满48h业绩</span><b id="statEligible">—</b></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>每日新增买入</h2>
+        <span class="muted small">北京时间 · 含本人</span>
+      </div>
+      <div class="table-wrap">
+        <table class="daily">
+          <thead><tr><th>日期</th><th class="num">新增买入</th><th class="num">其中仍持有</th><th class="num">笔数 · 人数</th></tr></thead>
+          <tbody id="dailyBody"></tbody>
+        </table>
+      </div>
+      <p id="dailyTotal" class="muted small"></p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>直推明细</h2>
+        <button id="exportCsv" class="btn ghost small">导出表格</button>
+      </div>
+      <p class="muted small">点开每个人看他的每一笔买入。卖出时先扣最早买的那笔；买入后持满 48 小时、仍没卖出的部分计为"满48h"。时间按数据更新时刻计算。</p>
+      <div id="directList"></div>
+      <div id="directEmpty" class="empty" hidden>还没有直推</div>
+    </section>
+  </div>
+
+  <!-- ============================================================ 排行 -->
+  <div id="boardPanel" data-panel="board" hidden>
+    <section class="card">
+      <div class="card-head">
+        <h2>业绩榜</h2>
+        <span id="reportAge" class="muted small">—</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>地址</th><th class="num">个人</th><th class="num">团队</th><th class="num">持有</th></tr>
+          </thead>
+          <tbody id="board"></tbody>
+        </table>
+        <div id="boardEmpty" class="empty">业绩数据尚未生成</div>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<footer>向日葵 · 数据来自 BNB Chain 链上记录</footer>
+
+<script src="chain.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
