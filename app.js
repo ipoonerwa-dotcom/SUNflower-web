@@ -15,7 +15,7 @@ const CONFIG = {
   lendingVault: "0xDDA9d6C1738Ea47E047b220A6feCc3cfC9D65cB6",
   registry: "0xFD58e05fFc519B3fd7E28FeD770845C19D696FAB",
   // Filled in once deployed. Until then their panels say they are coming, and the admin tab never shows.
-  console: "0x5ed189a962217090245D23517eCE03811cB71791", // SunflowerConsole: admins, studio approvals, reward bookkeeping
+  console: "0x8Eb49b7e5f3c19aB176810aed5C7f1f4d3Df38fB", // SunflowerConsole: admins, studio approvals, reward bookkeeping; owns the registry
   staking: "0xb05C26c55134f249f4cB228c5Ec70189446561aD", // SunflowerStaking: the 100-day staking
   // The top of the tree, and the only address that is in it from birth. Whoever arrives without an
   // invite link joins here, so nobody is ever stuck with nobody to bind to.
@@ -47,6 +47,7 @@ const state = {
   isAdmin: false,
   rewardBps: 0,
   rewards: [], // the admin tab's rows, with their paid flags
+  pool: null, // the staking contract as the admin tab last read it: {pool, open, owner, bnb}
 };
 
 // ---------------------------------------------------------------- formatting
@@ -168,6 +169,10 @@ function readableError(error) {
     [/same name/i, "新名字和现在的一样。"],
     [/no application/i, "没有待审核的申请。"],
     [/not a studio/i, "这个地址不是工作室。"],
+    [/console not registry owner/i, "管理合约还没接管推荐关系，需要改挂的申请暂时批不了，请联系 owner。"],
+    [/would create a cycle/i, "不能挂到他自己的下级下面。"],
+    [/no change/i, "他现在的推荐人就是这个地址。"],
+    [/user not bound/i, "这个会员还没有绑定。"],
     [/not admin/i, "这个钱包不是管理员。"],
     [/already paid/i, "其中有已经标记过发放的记录，请刷新后重试。"],
     [/not paid/i, "其中有还没标记发放的记录，请刷新后重试。"],
@@ -175,6 +180,9 @@ function readableError(error) {
     [/bonus pool too small/i, "奖励池余额不足，暂时不能质押。"],
     [/amount too small/i, "数量低于最少质押额。"],
     [/nothing to claim/i, "现在没有可领取的。"],
+    [/more than the pool/i, "提取数量超过了奖励池余额。用户的本金由合约锁定，提不走。"],
+    [/bnb transfer failed/i, "BNB 转出失败：这个收款地址收不了 BNB，请换一个普通钱包地址。"],
+    [/not owner/i, "只有 owner 钱包能做这个操作。"],
     [/INSUFFICIENT_OUTPUT_AMOUNT/i, "价格变动超过了滑点，交易没有成交。可以调高滑点或稍后再试。"],
     [/TRANSFER_FROM_FAILED|transfer amount exceeds/i, "余额或授权不足。"],
     [/EXPIRED/i, "交易等待太久已过期，请重新提交。"],
@@ -476,7 +484,7 @@ async function applyStudio() {
   await consoleAction(
     Chain.encodeCall("applyForStudio", name),
     "申请成为工作室",
-    "申请已提交，等管理员审核。通过后，你网体下的所有地址都会显示这个名字。"
+    "申请已提交，等管理员审核。通过后你会改挂官方源头，网体下的所有地址都会显示这个名字。"
   );
 }
 
@@ -492,7 +500,7 @@ async function withdrawStudioApplication() {
 }
 
 async function resignStudio() {
-  if (!confirm("确定取消工作室吗？你网体下的地址将改为显示上一级工作室（如果有）。")) return;
+  if (!confirm("确定取消工作室吗？取消后你仍挂在官方源头下，不会回到原来的上级；网体下的地址不再显示这个社区名称。")) return;
   await consoleAction(Chain.encodeCall("resign"), "取消工作室", "已取消工作室。");
 }
 
@@ -542,7 +550,7 @@ async function renderStake() {
         line.className = "position";
         line.innerHTML =
           `<div class="p-head"><span>${timeOf(Number(start[i]))} 质押</span><b>${tokens(principal[i])}</b></div>` +
-          `<div class="bar"><i style="width:${days}%"></i></div>` +
+          `<div class="progress"><i style="width:${days}%"></i></div>` +
           `<div class="p-foot"><span>已释放 ${days}/100 天</span><span>已领 ${tokens(claimed[i])} · 可领 <b>${tokens(released[i] - claimed[i])}</b></span></div>`;
         list.appendChild(line);
       }
@@ -656,6 +664,7 @@ async function loadRewardFlags(rows) {
 
 async function renderAdmin() {
   if (!state.isAdmin || !CONFIG.console) return;
+  renderPoolAdmin(); // reads a different contract and reports its own failures
   try {
     const [[admins], [owner], [bps], [accounts, names, at]] = await Promise.all([
       read(CONFIG.console, "admins", [], ["address[]"]),
@@ -678,19 +687,33 @@ async function renderAdmin() {
       )
       .join("");
 
+    // Who each applicant hangs under now, read live: approving a new studio moves it to the root,
+    // and the admin deciding should see whose team it leaves and how much goes with it.
+    const uplines = await Promise.all(accounts.map((a) => statusOf(a).then((s) => s?.upline).catch(() => null)));
     const apps = $("appList");
     apps.innerHTML = "";
     accounts.forEach((a, i) => {
       const current = state.studios.get(lower(a));
+      const up = uplines[i];
+      const moves = !current && Boolean(up) && lower(up) !== lower(CONFIG.root) && lower(a) !== lower(CONFIG.root);
+      const size = downline(a).length;
+      const effect = current
+        ? ""
+        : moves
+          ? `<div class="small move">批准后从 <a class="mono" href="${CONFIG.explorer}/address/${up}" target="_blank" rel="noopener">${short(up)}</a> 的团队独立出来，改挂官方源头，带走网体 ${size} 人</div>`
+          : `<div class="muted small">已是官方源头直推，批准不改关系</div>`;
       const row = document.createElement("div");
       row.className = "app-row";
       row.innerHTML =
         `<div class="app-name"><b>${esc(names[i])}</b>${current ? `<span class="muted small">改名，原名「${esc(current)}」</span>` : ""}</div>` +
         `<div class="muted small"><a class="mono" href="${CONFIG.explorer}/address/${a}" target="_blank" rel="noopener">${short(a)}</a> · ${timeOf(Number(at[i]))} 申请</div>` +
-        `<div class="row2"><button class="btn primary small" data-approve="${a}">批准</button><button class="btn ghost small danger" data-reject="${a}">拒绝</button></div>`;
+        effect +
+        `<div class="row2"><button class="btn primary small" data-approve="${a}"${moves ? ` data-from="${up}" data-size="${size}"` : ""}>批准</button>` +
+        `<button class="btn ghost small danger" data-reject="${a}">拒绝</button></div>`;
       apps.appendChild(row);
     });
     $("appEmpty").hidden = accounts.length > 0;
+    $("fixPanel").hidden = lower(owner) !== lower(state.account);
 
     const studios = $("studioAdminList");
     studios.innerHTML = "";
@@ -803,7 +826,10 @@ async function adminClick(event) {
     : target.dataset.reject
       ? ["rejectStudio", target.dataset.reject, "拒绝申请"]
       : ["removeStudio", target.dataset.remove, "移除工作室"];
-  if (name === "removeStudio" && !confirm("确定移除这个工作室吗？它网体下的地址将改为显示上一级工作室（如果有）。")) return;
+  if (name === "removeStudio" && !confirm("确定移除这个工作室吗？它仍挂在官方源头下，不会回到原来的上级；网体下的地址不再显示这个社区名称。")) return;
+  if (name === "approveStudio" && target.dataset.from && !confirm(
+    `批准后，${short(address)} 的推荐人会自动改为官方源头：他和网体 ${target.dataset.size} 人的业绩不再计入原上级 ${short(target.dataset.from)} 的团队。确定批准吗？`
+  )) return;
   try {
     await send({ to: CONFIG.console, data: Chain.encodeCall(name, address) }, label);
     note(`${label}：完成。`, "ok");
@@ -833,10 +859,155 @@ function exportRewards() {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
+/** The registry's correction, which the console holds for its owner since studios became independent. */
+async function fixReferrer() {
+  const user = $("fixUser").value.trim();
+  const referrer = $("fixReferrer").value.trim();
+  if (!isAddress(user) || !isAddress(referrer)) return note("地址格式不对，应该是 0x 开头的 42 位地址。", "warn");
+  if (lower(user) === lower(referrer)) return note("不能挂到自己下面。", "warn");
+  // Ask the chain before the wallet, which would only show a raw revert.
+  note("正在检查…", "info");
+  const [who, to, [holder]] = await Promise.all([
+    statusOf(user),
+    statusOf(referrer),
+    read(CONFIG.registry, "owner", [], ["address"]),
+  ]).catch(() => [null, null, [null]]);
+  if (!who || !to) return note("读取链上状态失败，请检查网络后重试。", "warn");
+  if (lower(holder) !== lower(CONFIG.console)) return note("推荐关系合约目前不归管理合约管，请用它的 owner 钱包直接在 BscScan 上更正。", "warn");
+  if (!who.registered || lower(user) === lower(CONFIG.root)) return note("这个会员还没有绑定，不需要更正。", "warn");
+  if (!to.registered) return note("新推荐人还没有加入，请他先完成绑定。", "warn");
+  if (lower(who.upline) === lower(referrer)) return note("他现在的推荐人就是这个地址。", "info");
+  // Dry-run it too: the registry refuses moving somebody under their own downline, and a wallet
+  // would let the transaction go out anyway and charge for the failure.
+  const data = Chain.encodeCall("correctReferrer", user, referrer);
+  try {
+    await rpc("eth_call", [{ from: state.account, to: CONFIG.console, data }, "latest"]);
+  } catch (error) {
+    return note(readableError(error), "warn");
+  }
+  if (!confirm(`把会员\n${user}\n从推荐人 ${who.upline}\n改挂到 ${referrer}\n下面？他的网体会跟着一起移过去。`)) return note("", "info");
+  try {
+    await send({ to: CONFIG.console, data }, "更正推荐关系");
+    note("推荐关系已更正。团队业绩在下次数据更新后按新关系计算。", "ok");
+    $("fixUser").value = "";
+    $("fixReferrer").value = "";
+  } catch (error) {
+    note(readableError(error), "warn");
+  }
+}
+
 function viewWholeNetwork() {
   $("lookupInput").value = CONFIG.root;
   history.replaceState(null, "", "#team");
   showTab("team");
+}
+
+// ---------------------------------------------------------------- 管理 · 理财奖励池
+
+/**
+ * The staking contract's owner side. Every bonus is paid the moment its stake is made, so nothing
+ * in the pool is promised to anybody: taking it back can only turn new stakes away, never short an
+ * existing one. The principal owed to stakers is beyond the owner's reach in the contract itself.
+ */
+async function renderPoolAdmin() {
+  $("poolAdmin").hidden = !CONFIG.staking;
+  if (!CONFIG.staking) return;
+  try {
+    const one = async (name) => (await read(CONFIG.staking, name, [], ["uint256"]))[0];
+    const [pool, locked, bonusPaid, [open], [owner], held] = await Promise.all([
+      one("poolBalance"),
+      one("totalLocked"),
+      one("totalBonusPaid"),
+      read(CONFIG.staking, "open", [], ["bool"]),
+      read(CONFIG.staking, "owner", [], ["address"]),
+      rpc("eth_getBalance", [CONFIG.staking, "latest"]).then(BigInt),
+    ]);
+    state.pool = { pool, open, owner, bnb: held };
+    $("poolLeft").textContent = tokens(pool);
+    $("poolLocked").textContent = tokens(locked);
+    $("poolBonusPaid").textContent = tokens(bonusPaid);
+    $("poolBnb").textContent = bnb(held);
+    $("poolState").textContent = open ? "质押开放中" : "质押已暂停";
+    $("poolContract").textContent = CONFIG.staking;
+    $("poolContract").href = `${CONFIG.explorer}/address/${CONFIG.staking}`;
+
+    // The contract checks the owner on every call; this only spares everyone else buttons that fail.
+    const isOwner = Boolean(state.account) && lower(owner) === lower(state.account);
+    $("poolOwnerTools").hidden = !isOwner;
+    $("poolNotOwner").hidden = isOwner;
+    $("poolOwner").textContent = owner;
+    if (isOwner && !$("poolTo").value) $("poolTo").value = state.account;
+    $("poolWithdraw").disabled = pool === 0n;
+    $("bnbWithdraw").disabled = held === 0n;
+    $("poolToggle").textContent = open ? "暂停质押" : "恢复质押";
+  } catch (error) {
+    note("读取奖励池失败：" + readableError(error), "warn");
+  }
+}
+
+function setPoolMax() {
+  if (state.pool) $("poolAmount").value = Chain.formatUnits(state.pool.pool, 18, 18).replace(/,/g, "");
+}
+
+/** The recipient, checked the same way for both withdrawals, or null after saying what is wrong. */
+function poolRecipient() {
+  const to = $("poolTo").value.trim();
+  if (isAddress(to)) return to;
+  note("收款地址格式不对，应该是 0x 开头的 42 位地址。", "warn");
+  return null;
+}
+
+async function withdrawPoolTokens() {
+  const to = poolRecipient();
+  if (!to) return;
+  const amount = Chain.parseUnits($("poolAmount").value || "");
+  if (!amount) return note("请输入提取数量。", "warn");
+  // Asked again rather than taken from the screen: a stake since then will have used some of it.
+  const [pool] = await read(CONFIG.staking, "poolBalance", [], ["uint256"]);
+  if (amount > pool) return note(`奖励池现在只有 ${tokens(pool)} 枚，提取数量超过了余额。`, "warn");
+  if (!confirm(`从奖励池提取 ${tokens(amount)} 枚向日葵，转到：\n\n${to}\n\n请核对收款地址。`)) return;
+  try {
+    await send({ to: CONFIG.staking, data: Chain.encodeCall("withdrawPool", to, amount) }, "提取奖励池");
+    note(`已从奖励池提取 ${tokens(amount)} 枚到 ${short(to)}。`, "ok");
+    $("poolAmount").value = "";
+  } catch (error) {
+    note(readableError(error), "warn");
+  } finally {
+    await renderPoolAdmin();
+  }
+}
+
+async function withdrawPoolBnb() {
+  const to = poolRecipient();
+  if (!to) return;
+  const held = BigInt(await rpc("eth_getBalance", [CONFIG.staking, "latest"]));
+  if (held === 0n) return note("理财合约里现在没有分红 BNB。", "info");
+  if (!confirm(`把理财合约代收的分红 ${bnb(held)} BNB 全部转到：\n\n${to}\n\n请核对收款地址。`)) return;
+  try {
+    await send({ to: CONFIG.staking, data: Chain.encodeCall("withdrawBnb", to) }, "提取分红 BNB");
+    note(`分红 BNB 已转到 ${short(to)}。`, "ok");
+  } catch (error) {
+    note(readableError(error), "warn");
+  } finally {
+    await renderPoolAdmin();
+  }
+}
+
+async function togglePoolOpen() {
+  if (!state.pool) return;
+  const open = !state.pool.open;
+  const question = open
+    ? "恢复后用户可以重新质押（奖励池要够付 10%）。确定恢复吗？"
+    : "暂停后不能再新质押；已经质押的人照常每天释放、随时能领。确定暂停吗？";
+  if (!confirm(question)) return;
+  try {
+    await send({ to: CONFIG.staking, data: Chain.encodeCall("setOpen", open) }, open ? "恢复质押" : "暂停质押");
+    note(open ? "质押已恢复。" : "质押已暂停。", "ok");
+  } catch (error) {
+    note(readableError(error), "warn");
+  } finally {
+    await renderPoolAdmin();
+  }
 }
 
 // ---------------------------------------------------------------- 交易
@@ -1277,6 +1448,11 @@ async function boot() {
   $("saveRewardRate").addEventListener("click", saveRewardRate);
   $("exportRewards").addEventListener("click", exportRewards);
   $("viewWholeNetwork").addEventListener("click", viewWholeNetwork);
+  $("poolMax").addEventListener("click", setPoolMax);
+  $("poolWithdraw").addEventListener("click", withdrawPoolTokens);
+  $("bnbWithdraw").addEventListener("click", withdrawPoolBnb);
+  $("poolToggle").addEventListener("click", togglePoolOpen);
+  $("fixButton").addEventListener("click", fixReferrer);
 
   for (const b of document.querySelectorAll("[data-tab]")) {
     b.addEventListener("click", () => {

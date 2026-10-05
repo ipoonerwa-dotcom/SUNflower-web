@@ -84,7 +84,8 @@
         <div id="studioNeedsBind" class="from-link soft" hidden>请先在上面绑定推荐人，再申请成为工作室。</div>
 
         <div id="studioApply">
-          <p class="muted">提交申请后，<b>等管理员审核通过</b>，这个钱包地址就成为社区地址，你网体下所有地址都会显示这个社区名称。网体里如果还有别的工作室，他下面的人显示离自己最近的那个。</p>
+          <p class="muted">提交申请后，<b>等管理员审核通过</b>，这个钱包地址就成为社区地址，你网体下所有地址都会显示这个社区名称。</p>
+          <p class="muted"><b>审核通过后，你的推荐人会自动改为官方源头</b>，你和你的整个网体从原来的上级团队中独立出来：你们的业绩不再计入原上级的团队。以后取消工作室，也不会回到原来的上级。</p>
           <label class="field">
             <span>社区名称</span>
             <input id="studioName" maxlength="48" placeholder="最多 16 个汉字" autocomplete="off">
@@ -134,6 +135,7 @@
           <tr><td>卖掉绑定前的老仓</td><td class="minus">要补</td><td>之后的买入先补上这部分，补完才算新增。防止"卖老仓再买回来"刷业绩</td></tr>
           <tr><td>违约被销毁</td><td class="minus">扣减</td><td>抵押品被烧掉，仓位是真的没了</td></tr>
           <tr><td>别人转进来 / 空投</td><td class="keep">不算</td><td>没花钱买的不算业绩</td></tr>
+          <tr><td>下级成为工作室</td><td class="minus">移出</td><td>审核通过后他改挂官方源头，他和他整个网体的业绩不再计入原上级的团队</td></tr>
         </tbody>
       </table>
       <p class="muted small">
@@ -350,6 +352,7 @@
 
     <section class="card">
       <h2>工作室申请</h2>
+      <p class="muted small">批准新工作室时，合约会把它的推荐人自动改为官方源头：它和整个网体从原上级的团队中独立出来，原上级的团队业绩相应减少。改名不会改关系。</p>
       <div id="appList"></div>
       <div id="appEmpty" class="empty">没有待审核的申请</div>
     </section>
@@ -358,6 +361,53 @@
       <h2>已批准的工作室</h2>
       <div id="studioAdminList"></div>
       <div id="studioAdminEmpty" class="empty">还没有工作室</div>
+    </section>
+
+    <section class="card" id="poolAdmin">
+      <div class="card-head">
+        <h2>理财奖励池</h2>
+        <span id="poolState" class="muted small">—</span>
+      </div>
+      <div class="grid4">
+        <div class="stat"><span>奖励池余额</span><b id="poolLeft">—</b></div>
+        <div class="stat"><span>用户本金（锁定）</span><b id="poolLocked">—</b></div>
+        <div class="stat"><span>累计送出 10%</span><b id="poolBonusPaid">—</b></div>
+        <div class="stat"><span>代收分红 BNB</span><b id="poolBnb">—</b></div>
+      </div>
+      <p class="muted small pool-note">10% 在质押那一刻就发出去了，池子里剩下的都是还没用上的，随时可以全部或部分取回，不影响已经质押的人；用户的本金合约锁死，谁都取不走。往池子里加币：直接把向日葵转到理财合约 <a id="poolContract" class="mono" target="_blank" rel="noopener"></a>。</p>
+      <div id="poolOwnerTools" hidden>
+        <label class="field">
+          <span>收款地址（默认是当前连接的 owner 钱包）</span>
+          <input id="poolTo" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="swap-box pool-box">
+          <div class="swap-head"><span>提取数量</span><button id="poolMax" class="link">全部</button></div>
+          <div class="swap-line">
+            <input id="poolAmount" inputmode="decimal" placeholder="0.0" autocomplete="off">
+            <span class="unit">向日葵</span>
+          </div>
+        </div>
+        <button id="poolWithdraw" class="btn primary wide">提取奖励池</button>
+        <div class="row2">
+          <button id="bnbWithdraw" class="btn ghost">提取分红 BNB</button>
+          <button id="poolToggle" class="btn ghost">暂停质押</button>
+        </div>
+      </div>
+      <div id="poolNotOwner" class="from-link soft" hidden>只有理财合约的 owner 钱包（<span id="poolOwner" class="mono"></span>）能提取和暂停。用 owner 钱包连接后，这里会出现操作按钮。</div>
+    </section>
+
+    <section class="card" id="fixPanel" hidden>
+      <h2>更正推荐关系（仅 owner）</h2>
+      <p class="muted small">会员绑错推荐人时用：把他改挂到正确的推荐人下面，他自己的网体跟着一起走。每次更正都永久记录在链上。</p>
+      <label class="field">
+        <span>会员地址</span>
+        <input id="fixUser" placeholder="0x…" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>正确的推荐人地址</span>
+        <input id="fixReferrer" placeholder="0x…" autocomplete="off" spellcheck="false">
+      </label>
+      <button id="fixButton" class="btn ghost wide">更正</button>
     </section>
   </div>
 

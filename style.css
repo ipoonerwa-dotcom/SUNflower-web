@@ -384,8 +384,9 @@ table.daily tr.quiet td { color: #5d5444; }
 .p-head, .p-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .p-head span, .p-foot { color: var(--muted); }
 .p-foot b { color: var(--text); }
-.bar { height: 6px; border-radius: 999px; background: #1c1810; overflow: hidden; }
-.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+/* Not .bar: that is the header's class, and its padding and flex layout swallowed this whole. */
+.progress { height: 6px; border-radius: 999px; background: #1c1810; overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
 
 /* ---------------------------------------------------------------- studio approval and admin */
 
@@ -396,6 +397,7 @@ table.daily tr.quiet td { color: #5d5444; }
 .app-row:last-child { border-bottom: none; }
 .app-name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .app-row .row2 { margin-top: 0; }
+.app-row .move { color: var(--gold-soft); overflow-wrap: anywhere; }
 .rate-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
 .rate-row .field { flex: 1; margin: 0; }
 .rate-row .btn { flex: none; }
@@ -411,6 +413,9 @@ table.daily tr.quiet td { color: #5d5444; }
 .r-side { display: grid; justify-items: end; gap: 2px; white-space: nowrap; }
 .r-side b { font-size: 14px; }
 #markPaid, #unmarkPaid { margin-top: 12px; }
+.pool-note { margin: 12px 0; }
+.pool-note, #poolNotOwner { overflow-wrap: anywhere; } /* full contract addresses on a phone */
+.pool-box { margin-top: 10px; }
 
 /* ---------------------------------------------------------------- phone */
 

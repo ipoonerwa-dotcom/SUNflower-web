@@ -43,6 +43,7 @@
     markPaid: ["markPaid(bytes32[],address[],uint256[])", "0x31659a9a"],
     unmarkPaid: ["unmarkPaid(bytes32[],address[])", "0xb23144e8"],
     paidMany: ["paidMany(bytes32[],address[])", "0x5d61bd70"],
+    correctReferrer: ["correctReferrer(address,address)", "0xddbfe38c"], // owner only, passed to the registry
     // SunflowerStaking
     stake: ["stake(uint256)", "0xa694fc3a"],
     claim: ["claim()", "0x4e71d92d"],
@@ -54,6 +55,10 @@
     minStake: ["minStake()", "0x375b3c0a"],
     totalStaked: ["totalStaked()", "0x817b1cd2"],
     totalBonusPaid: ["totalBonusPaid()", "0x8325263c"],
+    // SunflowerStaking, owner only
+    withdrawPool: ["withdrawPool(address,uint256)", "0x7c4304ff"],
+    withdrawBnb: ["withdrawBnb(address)", "0xca109946"],
+    setOpen: ["setOpen(bool)", "0x6fdca5e0"],
     // ERC20: the token and USDT
     balanceOf: ["balanceOf(address)", "0x70a08231"],
     allowance: ["allowance(address,address)", "0xdd62ed3e"],
