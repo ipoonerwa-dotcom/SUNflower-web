@@ -22,13 +22,38 @@
     memberCount: ["memberCount()", "0x11aee380"],
     root: ["root()", "0xebf0c717"],
     uplineOf: ["uplineOf(address,uint256)", "0xfc824a55"],
-    // StudioRegistry
-    register: ["register(string)", "0xf2c298be"],
-    rename: ["rename(string)", "0x66605ba4"],
+    // SunflowerConsole: admins, studio approvals, reward bookkeeping
+    applyForStudio: ["applyForStudio(string)", "0xdd17ab63"],
+    withdrawApplication: ["withdrawApplication()", "0x1fcf55ff"],
     resign: ["resign()", "0x69652fcf"],
+    approveStudio: ["approve(address)", "0xdaea85c5"],
+    rejectStudio: ["reject(address)", "0xab0da5a9"],
+    registerFor: ["registerFor(address,string)", "0x498163fd"],
+    removeStudio: ["remove(address)", "0x29092d0e"],
     nameOf: ["nameOf(address)", "0xf5c57382"],
     studios: ["studios(uint256,uint256)", "0x5e991974"],
     studioCount: ["studioCount()", "0x1f0a3773"],
+    applicationOf: ["applicationOf(address)", "0x450187b8"],
+    applications: ["applications(uint256,uint256)", "0x7a870b63"],
+    isAdmin: ["isAdmin(address)", "0x24d7806c"],
+    admins: ["admins()", "0xa5de3619"],
+    owner: ["owner()", "0x8da5cb5b"],
+    rewardBps: ["rewardBps()", "0x82328ffc"],
+    setRewardBps: ["setRewardBps(uint256)", "0x0a542fa7"],
+    markPaid: ["markPaid(bytes32[],address[],uint256[])", "0x31659a9a"],
+    unmarkPaid: ["unmarkPaid(bytes32[],address[])", "0xb23144e8"],
+    paidMany: ["paidMany(bytes32[],address[])", "0x5d61bd70"],
+    // SunflowerStaking
+    stake: ["stake(uint256)", "0xa694fc3a"],
+    claim: ["claim()", "0x4e71d92d"],
+    claimable: ["claimable(address)", "0x402914f5"],
+    positionsOf: ["positionsOf(address)", "0xf867d46b"],
+    poolBalance: ["poolBalance()", "0x96365d44"],
+    totalLocked: ["totalLocked()", "0x56891412"],
+    open: ["open()", "0xfcfff16f"],
+    minStake: ["minStake()", "0x375b3c0a"],
+    totalStaked: ["totalStaked()", "0x817b1cd2"],
+    totalBonusPaid: ["totalBonusPaid()", "0x8325263c"],
     // ERC20: the token and USDT
     balanceOf: ["balanceOf(address)", "0x70a08231"],
     allowance: ["allowance(address,address)", "0xdd62ed3e"],
@@ -77,6 +102,10 @@
   function encodeStatic(type, value) {
     if (type === "address") return addressWord(value);
     if (type === "bool") return word(value ? 1 : 0);
+    if (type === "bytes32") {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(value)) throw new Error("not 32 bytes: " + value);
+      return value.slice(2).toLowerCase();
+    }
     if (/^uint\d*$/.test(type)) return word(value);
     throw new Error("unsupported static type " + type);
   }

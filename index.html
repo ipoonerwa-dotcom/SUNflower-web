@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>向日葵 · 团队业绩</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="bar">
   <div class="brand">
-    <span class="mark">✺</span>
+    <img class="mark" src="logo.webp" alt="向日葵" width="40" height="40">
     <div class="brand-text">
       <strong>向日葵</strong>
       <span class="sub">SUNFLOWER · 团队业绩</span>
@@ -22,8 +24,10 @@
 <nav class="tabs" role="tablist">
   <button role="tab" data-tab="me">我的</button>
   <button role="tab" data-tab="trade">交易</button>
+  <button role="tab" data-tab="stake">理财</button>
   <button role="tab" data-tab="team">团队</button>
   <button role="tab" data-tab="board">排行</button>
+  <button role="tab" data-tab="admin" id="adminTab" hidden>管理</button>
 </nav>
 
 <div id="note" class="note" hidden></div>
@@ -37,13 +41,14 @@
       <div class="hero-main">
         <div class="label">我的业绩 <span class="gold">金本位</span></div>
         <div id="personalUsd" class="figure">$0.00</div>
-        <div class="hint">按买入当时的美元价锁定，币价涨跌都不影响</div>
+        <div id="perfHint" class="hint">只算绑定之后的买入，按买入当时的美元价锁定</div>
         <div id="myStudioLine" class="studio-line" hidden>所属社区 <span id="myStudioName" class="tag"></span></div>
       </div>
       <div class="hero-side">
         <div class="stat"><span>团队业绩</span><b id="teamUsd">$0.00</b></div>
         <div class="stat"><span>持有</span><b id="heldTokens">0</b></div>
         <div class="stat"><span>抵押中</span><b id="stakedTokens">0</b></div>
+        <div class="stat"><span>理财中</span><b id="lockedTokens">0</b></div>
         <div class="stat"><span>钱包余额</span><b id="myBalance">0</b></div>
       </div>
     </section>
@@ -79,7 +84,7 @@
         <div id="studioNeedsBind" class="from-link soft" hidden>请先在上面绑定推荐人，再申请成为工作室。</div>
 
         <div id="studioApply">
-          <p class="muted">提交后，<b>这个钱包地址就成为社区地址</b>，你网体下所有地址都会显示这个社区名称。网体里如果还有别的工作室，他下面的人显示离自己最近的那个。</p>
+          <p class="muted">提交申请后，<b>等管理员审核通过</b>，这个钱包地址就成为社区地址，你网体下所有地址都会显示这个社区名称。网体里如果还有别的工作室，他下面的人显示离自己最近的那个。</p>
           <label class="field">
             <span>社区名称</span>
             <input id="studioName" maxlength="48" placeholder="最多 16 个汉字" autocomplete="off">
@@ -89,18 +94,26 @@
             <input id="studioAddress" readonly>
           </label>
           <p class="muted small">要让哪个地址成为社区，就用那个钱包连接后提交。不能替别人的地址申请，否则谁都能给别人的网体随便起名。</p>
-          <button id="studioSubmit" class="btn primary wide">申请成为工作室</button>
+          <button id="studioSubmit" class="btn primary wide">提交申请</button>
+        </div>
+
+        <div id="studioWaiting" class="waiting" hidden>
+          <div><span id="studioWaitingKind">工作室申请</span>「<b id="studioWaitingName"></b>」审核中</div>
+          <div class="muted small"><span id="studioWaitingAt"></span> 提交 · 管理员批准后生效</div>
+          <button id="studioWithdraw" class="btn ghost small">撤回申请</button>
         </div>
 
         <div id="studioManage" hidden>
           <div class="studio-current">你的工作室：<span id="studioCurrent" class="tag big"></span></div>
-          <label class="field">
-            <span>修改名称</span>
-            <input id="studioRename" maxlength="48" placeholder="新的社区名称" autocomplete="off">
-          </label>
-          <div class="row2">
-            <button id="studioRenameButton" class="btn ghost">改名</button>
-            <button id="studioResign" class="btn ghost danger">取消工作室</button>
+          <div id="studioRenameBox">
+            <label class="field">
+              <span>修改名称（同样需要管理员审核）</span>
+              <input id="studioRename" maxlength="48" placeholder="新的社区名称" autocomplete="off">
+            </label>
+            <div class="row2">
+              <button id="studioRenameButton" class="btn ghost">申请改名</button>
+              <button id="studioResign" class="btn ghost danger">取消工作室</button>
+            </div>
           </div>
         </div>
       </div>
@@ -108,21 +121,23 @@
 
     <section class="card rules">
       <h2>业绩怎么算</h2>
-      <p class="lead">业绩 = <b>你买入、并且还拿着的那部分代币，按买入当时的美元价计</b>。</p>
+      <p class="lead">业绩 = <b>绑定之后的净买入</b>：绑定后买进的，减去绑定后卖出、转出的，按买入当时的美元价计。</p>
       <table class="rules-table">
         <tbody>
-          <tr><td>买入 / 铸造</td><td class="plus">计入</td><td>按成交当时的 BNB/美元价折算</td></tr>
+          <tr><td>绑定之前的买入</td><td class="keep">不算</td><td>自己和团队都不算，绑定那一刻从零开始</td></tr>
+          <tr><td>绑定后买入 / 铸造</td><td class="plus">计入</td><td>在哪儿买都算（本页、PancakeSwap、钱包、聚合器），按成交当时 BNB/美元价折算</td></tr>
           <tr><td>抵押借贷后买入</td><td class="plus">计入</td><td>借来的 BNB 买入，和自己掏钱一样算</td></tr>
-          <tr><td>抵押给金库</td><td class="keep">不变</td><td>币还是你的，只是押在金库里</td></tr>
-          <tr><td>赎回取回</td><td class="keep">不变</td><td>抵押的反向操作</td></tr>
-          <tr><td>卖出</td><td class="minus">扣减</td><td>扣掉这些币<b>当初的买入成本</b>，先扣最早买的</td></tr>
-          <tr><td>转给别的地址</td><td class="minus">扣减</td><td>不扣的话，转到小号卖掉就能无限刷业绩</td></tr>
+          <tr><td>抵押给金库 / 赎回</td><td class="keep">不变</td><td>币还是你的，只是押在金库里</td></tr>
+          <tr><td>理财质押 / 每日释放</td><td class="keep">不变</td><td>质押的币仍算你持有；送的 10% 没花钱买，不算业绩</td></tr>
+          <tr><td>绑定后卖出</td><td class="minus">扣减</td><td>先扣绑定后买的，扣的是<b>当初的买入成本</b>，不是卖出价</td></tr>
+          <tr><td>绑定后转给别的地址</td><td class="minus">扣减</td><td>不扣的话，转到小号卖掉就能无限刷业绩</td></tr>
+          <tr><td>卖掉绑定前的老仓</td><td class="minus">要补</td><td>之后的买入先补上这部分，补完才算新增。防止"卖老仓再买回来"刷业绩</td></tr>
           <tr><td>违约被销毁</td><td class="minus">扣减</td><td>抵押品被烧掉，仓位是真的没了</td></tr>
-          <tr><td>别人转进来 / 空投</td><td class="keep">不变</td><td>没花钱买的不算业绩，卖掉也不扣</td></tr>
+          <tr><td>别人转进来 / 空投</td><td class="keep">不算</td><td>没花钱买的不算业绩</td></tr>
         </tbody>
       </table>
       <p class="muted small">
-        卖光业绩归零，不会变成负数。本页只做统计与展示，奖励由项目方核算后发放。
+        业绩不会变成负数。本页只做统计与展示，奖励由项目方核算后发放。
         合约：<a id="tokenLink" target="_blank" rel="noopener">代币</a> ·
         <a id="vaultLink" target="_blank" rel="noopener">借贷金库</a>
       </p>
@@ -183,6 +198,48 @@
     </section>
   </div>
 
+  <!-- ============================================================ 理财 -->
+  <div id="stakePanel" data-panel="stake" hidden>
+    <section class="card stake-hero">
+      <div class="badge-hot">加入理财，立得 10% 的币，秒到</div>
+      <h2>理财 · 质押 100 天</h2>
+      <p class="muted">质押向日葵，<b>当场多给 10%</b>；本金从第二天起<b>每天释放 1%</b>，100 天全部放完，随时可领已释放的部分。</p>
+      <div id="stakePending" class="pending">理财即将开放。</div>
+      <div id="stakeBody" hidden>
+        <div class="grid4">
+          <div class="stat"><span>我的质押中</span><b id="stakeLocked">0</b></div>
+          <div class="stat"><span>现在可领</span><b id="stakeClaimable">0</b></div>
+          <div class="stat"><span>全网已质押</span><b id="stakeTotal">0</b></div>
+          <div class="stat"><span>奖励池剩余</span><b id="stakePool">0</b></div>
+        </div>
+        <p class="muted small">累计已送出奖励 <b id="stakeBonusPaid">0</b> 枚</p>
+        <button id="stakeClaim" class="btn ghost wide" disabled>领取已释放的币</button>
+      </div>
+    </section>
+
+    <section class="card swap" id="stakeForm">
+      <div class="swap-box">
+        <div class="swap-head"><span>质押数量</span><span class="muted small">余额 <b id="stakeBalance">—</b> <button id="stakeMax" class="link">最大</button></span></div>
+        <div class="swap-line">
+          <input id="stakeAmount" inputmode="decimal" placeholder="0.0" autocomplete="off">
+          <span class="unit">向日葵</span>
+        </div>
+      </div>
+      <dl class="swap-details">
+        <div><dt>立即到账（10%）</dt><dd><b id="stakeBonus" class="gold">0</b> 枚</dd></div>
+        <div><dt>之后每天释放（1%）</dt><dd><span id="stakeDaily">0</span> 枚 × 100 天</dd></div>
+      </dl>
+      <button id="stakeButton" class="btn primary wide">质押</button>
+      <p class="muted small">质押后本金锁定，不能提前取回；每过 24 小时释放 1%。10% 奖励由项目方存入的奖励池发放，奖励池不足时暂停质押。质押期间这部分币的持币分红（BNB）由理财合约代收，归项目方；质押的币仍计入你的持仓和业绩。</p>
+    </section>
+
+    <section class="card">
+      <h2>我的质押</h2>
+      <div id="stakeList"></div>
+      <div id="stakeEmpty" class="empty">还没有质押</div>
+    </section>
+  </div>
+
   <!-- ============================================================ 团队 -->
   <div id="teamPanel" data-panel="team" hidden>
     <section class="card">
@@ -205,15 +262,20 @@
 
     <section class="card">
       <div class="card-head">
-        <h2>每日新增买入</h2>
-        <span class="muted small">北京时间 · 含本人</span>
+        <h2>网体</h2>
+        <span class="muted small">点 ▸ 展开下一级 · 点地址看他的团队</span>
       </div>
-      <div class="table-wrap">
-        <table class="daily">
-          <thead><tr><th>日期</th><th class="num">新增买入</th><th class="num">其中仍持有</th><th class="num">笔数 · 人数</th></tr></thead>
-          <tbody id="dailyBody"></tbody>
-        </table>
+      <div id="networkTree" class="network"></div>
+      <div id="networkEmpty" class="empty" hidden>下面还没有人</div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>每日新增业绩</h2>
+        <span class="muted small">北京时间 · 含本人 · 只算绑定后</span>
       </div>
+      <div class="day-head"><span>日期</span><span class="num">新增业绩</span><span class="num">至今仍计入</span><span class="num">笔数 · 人数</span></div>
+      <div id="dailyBody" class="days"></div>
       <p id="dailyTotal" class="muted small"></p>
     </section>
 
@@ -222,7 +284,7 @@
         <h2>直推明细</h2>
         <button id="exportCsv" class="btn ghost small">导出表格</button>
       </div>
-      <p class="muted small">点开每个人看他的每一笔买入。卖出时先扣最早买的那笔；买入后持满 48 小时、仍没卖出的部分计为"满48h"。时间按数据更新时刻计算。</p>
+      <p class="muted small">点开每个人看他的每一笔买入。只有<b>绑定之后</b>的买入才计入；绑定后卖出或转出，先扣绑定后买的。买入后持满 48 小时、仍没卖出的部分计为"满48h"。时间按数据更新时刻计算。</p>
       <div id="directList"></div>
       <div id="directEmpty" class="empty" hidden>还没有直推</div>
     </section>
@@ -242,8 +304,60 @@
           </thead>
           <tbody id="board"></tbody>
         </table>
-        <div id="boardEmpty" class="empty">业绩数据尚未生成</div>
+        <div id="boardEmpty" class="empty">还没有人有业绩：只有绑定之后的买入才计入</div>
       </div>
+    </section>
+  </div>
+
+  <!-- ============================================================ 管理（只对管理员钱包显示） -->
+  <div id="adminPanel" data-panel="admin" hidden>
+    <section class="card">
+      <div class="card-head">
+        <h2>管理后台</h2>
+        <button id="viewWholeNetwork" class="btn ghost small">查看全网团队数据</button>
+      </div>
+      <p class="muted small">这一页只在管理员钱包连接时出现。所有操作都由合约校验管理员身份，页面隐藏只是为了不打扰普通用户。</p>
+      <div class="field"><span>管理员钱包</span></div>
+      <ul id="adminList" class="admin-list"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>48 小时奖励</h2>
+        <span class="muted small">当前比例 <b id="rewardRateNow">0%</b></span>
+      </div>
+      <p class="muted small">推荐人的奖励 = 直推买入后持满 48 小时仍持有部分的金额 × 比例。48 小时内中途卖掉的部分不计；整笔都在 48 小时内卖掉的不列出。推荐人是官方（ROOT）的不计。钱由你们自己转账，这里只记录"已发放"，防止重复发。</p>
+      <div class="rate-row">
+        <label class="field"><span>奖励比例（%）</span><input id="rewardRate" inputmode="decimal" autocomplete="off"></label>
+        <button id="saveRewardRate" class="btn ghost">保存比例</button>
+      </div>
+      <div class="seg filters">
+        <button data-rfilter="due" class="on">待发放</button>
+        <button data-rfilter="waiting">未满48h</button>
+        <button data-rfilter="paid">已发放</button>
+        <button data-rfilter="all">全部</button>
+      </div>
+      <p id="rewardSummary" class="small"></p>
+      <div class="reward-tools">
+        <button id="rewardAll" class="btn ghost small">全选/取消</button>
+        <button id="exportRewards" class="btn ghost small">导出表格</button>
+      </div>
+      <div id="rewardList"></div>
+      <div id="rewardEmpty" class="empty" hidden>这一栏没有记录</div>
+      <button id="markPaid" class="btn primary wide" disabled>标记已发放</button>
+      <button id="unmarkPaid" class="btn ghost wide" hidden>撤销已发放</button>
+    </section>
+
+    <section class="card">
+      <h2>工作室申请</h2>
+      <div id="appList"></div>
+      <div id="appEmpty" class="empty">没有待审核的申请</div>
+    </section>
+
+    <section class="card">
+      <h2>已批准的工作室</h2>
+      <div id="studioAdminList"></div>
+      <div id="studioAdminEmpty" class="empty">还没有工作室</div>
     </section>
   </div>
 

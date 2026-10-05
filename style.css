@@ -57,11 +57,9 @@ main {
 
 .mark {
   width: 40px; height: 40px;
-  display: grid; place-items: center;
+  display: block;
   border-radius: 12px;
-  font-size: 22px;
-  color: #1a1305;
-  background: linear-gradient(145deg, var(--gold-soft), var(--gold));
+  object-fit: cover;
   box-shadow: 0 6px 22px rgba(245, 179, 42, 0.28);
   flex: none;
 }
@@ -109,6 +107,7 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 8px 24px rgba(245, 179, 42, 0.22);
 }
 .btn.ghost.connected { border-color: #4a3c20; color: var(--gold-soft); }
+#connect { white-space: nowrap; flex: none; }
 .wide { width: 100%; margin-top: 12px; }
 
 .note {
@@ -221,7 +220,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 16
   max-width: 880px;
   margin: 0 auto 14px;
   padding: 8px 16px;
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
+  /* As many columns as there are visible tabs: five for everyone, six when the admin tab shows. */
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px;
   background: rgba(11, 9, 6, 0.86);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
@@ -330,6 +330,87 @@ table.daily tr.quiet td { color: #5d5444; }
 .b-state.ok { color: var(--green); }
 .b-state.wait { color: var(--gold); }
 .b-state.out { color: #6f6555; }
+.b-state.pre { color: #6f6555; font-weight: 500; }
+.d-bound { margin-left: 8px; color: var(--muted); font: 11.5px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+/* ---------------------------------------------------------------- network */
+
+.network { display: grid; gap: 2px; }
+.node-head { display: flex; align-items: flex-start; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.toggle {
+  flex: none; width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line);
+  background: #100d08; color: var(--gold); font-size: 12px; line-height: 1; cursor: pointer;
+}
+.toggle:disabled { color: #4d4536; border-color: transparent; background: transparent; cursor: default; }
+.node-main { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.node-id { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.node-id .tag { margin-left: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+.lvl { font: 600 11px -apple-system, "PingFang SC", sans-serif; color: var(--muted); padding: 1px 6px; border-radius: 6px; background: #1c1810; }
+.node-stats { font-size: 12px; color: var(--muted); }
+.node-stats b { color: var(--text); font-weight: 600; }
+.node-children[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- daily, expandable */
+
+.day-head, .day > summary {
+  display: grid; grid-template-columns: minmax(0, 0.8fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.1fr);
+  gap: 8px; align-items: center;
+}
+.day-head { padding: 0 10px 8px; font-size: 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+.day { border-bottom: 1px solid var(--line-soft); }
+.day > summary { list-style: none; cursor: pointer; padding: 10px; font-size: 13.5px; }
+.day > summary::-webkit-details-marker { display: none; }
+.day.quiet > summary { color: #5d5444; cursor: default; }
+.day-date::before { content: "▸ "; color: var(--muted); font-size: 11px; }
+.day[open] .day-date::before { content: "▾ "; }
+.day.quiet .day-date::before { content: "  "; }
+.day-buys { padding: 0 10px 8px; }
+.day-buy { padding: 6px 0; border-top: 1px dashed var(--line-soft); display: grid; gap: 2px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* ---------------------------------------------------------------- staking */
+
+.stake-hero { position: relative; overflow: hidden; }
+.badge-hot {
+  display: inline-block; margin-bottom: 10px; padding: 5px 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; color: #1a1305;
+  background: linear-gradient(145deg, var(--gold-soft), var(--gold));
+  box-shadow: 0 6px 20px rgba(245, 179, 42, 0.35);
+}
+.stake-hero .wide { margin-top: 12px; }
+#stakeForm .gold { color: var(--gold); }
+.position { padding: 10px 0; border-bottom: 1px solid var(--line-soft); display: grid; gap: 6px; font-size: 13px; }
+.position:last-child { border-bottom: none; }
+.p-head, .p-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.p-head span, .p-foot { color: var(--muted); }
+.p-foot b { color: var(--text); }
+.bar { height: 6px; border-radius: 999px; background: #1c1810; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+
+/* ---------------------------------------------------------------- studio approval and admin */
+
+.waiting { margin-bottom: 12px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(245, 179, 42, 0.4); background: rgba(245, 179, 42, 0.05); display: grid; gap: 6px; justify-items: start; }
+.admin-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.admin-list li { font-size: 12.5px; word-break: break-all; }
+.app-row { padding: 10px 0; border-bottom: 1px solid var(--line-soft); display: grid; gap: 6px; }
+.app-row:last-child { border-bottom: none; }
+.app-name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.app-row .row2 { margin-top: 0; }
+.rate-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+.rate-row .field { flex: 1; margin: 0; }
+.rate-row .btn { flex: none; }
+.filters { width: 100%; margin-bottom: 8px; }
+.reward-tools { display: flex; gap: 8px; margin-bottom: 8px; }
+.reward {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; cursor: pointer;
+}
+.reward input { margin-top: 3px; accent-color: var(--gold); }
+.r-main { display: grid; gap: 3px; min-width: 0; }
+.r-who, .r-what { overflow-wrap: anywhere; }
+.r-side { display: grid; justify-items: end; gap: 2px; white-space: nowrap; }
+.r-side b { font-size: 14px; }
+#markPaid, #unmarkPaid { margin-top: 12px; }
 
 /* ---------------------------------------------------------------- phone */
 
