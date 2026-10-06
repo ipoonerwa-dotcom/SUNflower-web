@@ -199,6 +199,7 @@ tbody tr:last-child { border-bottom: none; }
 tr.mine { background: rgba(245, 179, 42, 0.07); }
 tr.mine td:first-child { box-shadow: inset 2px 0 0 var(--gold); }
 .empty { padding: 26px 10px; text-align: center; color: var(--muted); font-size: 13px; }
+.stale { color: var(--red); }
 
 /* ---------------------------------------------------------------- rules */
 

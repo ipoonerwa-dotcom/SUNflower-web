@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/live/report.json",
+      "destination": "https://ipoonerwa-dotcom.github.io/sunflower-data/report.json"
+    }
+  ]
+}

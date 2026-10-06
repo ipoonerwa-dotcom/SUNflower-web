@@ -201,14 +201,64 @@ function note(text, tone = "info") {
 
 // ---------------------------------------------------------------- data
 
+/** How often the indexer's job publishes a new report (cron-job.org starts it). Shown, not enforced. */
+const REFRESH_MINUTES = 10;
+
+/**
+ * The newest report there is. The live copy is rebuilt by the indexer's scheduled job and served
+ * through this same site (vercel.json), so it reaches every visitor who can reach the page itself;
+ * the copy deployed with the page is only a fallback. Whichever is newer wins.
+ */
 async function loadReport() {
-  try {
-    const response = await fetch("report.json", { cache: "no-store" });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
+  const get = async (url) => {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) return null;
+      const report = await response.json();
+      return report?.rows && report.generatedAt ? report : null;
+    } catch {
+      return null;
+    }
+  };
+  const [live, shipped] = await Promise.all([get(`live/report.json?t=${Math.floor(Date.now() / 60_000)}`), get("report.json")]);
+  const at = (report) => (report ? Date.parse(report.generatedAt) : -1);
+  return at(live) >= at(shipped) ? live : shipped;
+}
+
+/** When the numbers were taken, and whether they are older than the schedule allows. */
+function renderFreshness() {
+  const report = state.report;
+  let text = "业绩数据尚未生成";
+  let stale = true;
+  if (report) {
+    const at = Math.floor(Date.parse(report.generatedAt) / 1000);
+    const minutes = Math.max(0, Math.floor((Date.now() / 1000 - at) / 60));
+    stale = minutes > 60;
+    const late = minutes >= 120 ? `${Math.floor(minutes / 60)} 小时` : `${minutes} 分钟`;
+    text = `数据更新于 ${timeOf(at)}` + (stale ? `，已 ${late}没有更新` : `（约每 ${REFRESH_MINUTES} 分钟自动更新）`);
   }
+  for (const id of ["reportAge", "teamAge"]) {
+    $(id).textContent = text;
+    $(id).classList.toggle("stale", stale);
+  }
+}
+
+/**
+ * Picks up a newer report while the page stays open. Only the panels built from it are drawn
+ * again, and the admin tab is left alone, so nothing an admin has ticked is lost.
+ */
+async function refreshReport() {
+  if (document.hidden) return;
+  const report = await loadReport();
+  if (report && report.generatedAt !== state.report?.generatedAt) {
+    state.report = report;
+    state.index = buildIndex(report);
+    const tab = currentTab();
+    if (tab === "me") await renderMe();
+    if (tab === "team") renderTeam();
+    renderBoard();
+  }
+  renderFreshness();
 }
 
 /** Lookups the panels need, built once: rows by address, and the tree both ways. */
@@ -341,8 +391,7 @@ async function renderMe() {
   $("connect").textContent = state.account ? short(state.account) : "连接钱包";
   $("connect").classList.toggle("connected", Boolean(state.account));
 
-  const report = state.report;
-  $("reportAge").textContent = report ? "数据更新于 " + new Date(report.generatedAt).toLocaleString("zh-CN") : "业绩数据尚未生成";
+  renderFreshness();
 
   state.status = state.account ? await statusOf(state.account).catch(() => null) : null;
   state.myUplines = [];
@@ -355,10 +404,14 @@ async function renderMe() {
   }
 
   const row = state.index.rows.get(lower(state.account));
+  // The published report lists members only. Somebody who has not bound has no row, and a 0 there
+  // would read as "you hold nothing" while their wallet balance below says otherwise.
+  const listed = Boolean(row) || Boolean(state.status?.registered) || !state.account;
+  const held = (value) => (listed ? tokens(value) : "—");
   $("personalUsd").textContent = usd(perf(row));
   $("teamUsd").textContent = state.account ? usd(teamTotal(state.account)) : usd(0);
-  $("heldTokens").textContent = tokens(row?.heldTokens);
-  $("stakedTokens").textContent = tokens(row?.staked);
+  $("heldTokens").textContent = held(row?.heldTokens);
+  $("stakedTokens").textContent = held(row?.staked);
   const boundAt = state.index.bound.get(lower(state.account));
   const reset = state.report?.countFrom;
   $("perfHint").textContent = !state.account
@@ -372,7 +425,7 @@ async function renderMe() {
       : state.status?.registered
         ? "刚绑定，数据更新后开始计算"
         : "还没绑定：绑定之后的买入才计入业绩";
-  $("lockedTokens").textContent = tokens(row?.locked);
+  $("lockedTokens").textContent = held(row?.locked);
 
   // My community: the nearest studio at or above me, using the live upline so a fresh binding shows.
   const chain = state.account ? [state.account, ...state.myUplines] : [];
@@ -1150,8 +1203,7 @@ async function executeSwap() {
 function renderTeam() {
   const target = isAddress($("lookupInput").value.trim()) ? $("lookupInput").value.trim() : state.account;
   state.view = target ? lower(target) : null;
-  const report = state.report;
-  $("teamAge").textContent = report ? "数据截至 " + new Date(report.generatedAt).toLocaleString("zh-CN") : "";
+  renderFreshness();
 
   const list = $("directList");
   const daily = $("dailyBody");
@@ -1499,6 +1551,13 @@ async function boot() {
   await loadConsole().catch(() => {});
   showTab(location.hash.slice(1));
   await renderAll();
+
+  // A page left open keeps up with the scheduled job: checked every few minutes while visible, and
+  // straight away when somebody comes back to it.
+  setInterval(refreshReport, 5 * 60_000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshReport();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", boot);
